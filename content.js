@@ -36,8 +36,8 @@ const getQuestionTitle = () => {
         return matches.length === 1;
     });
     const activeQuestion = activeLabels
-        .filter((label) => /(?:pregunta|problema)\s*\d+/i.test(label))
-        .sort((a, b) => a.length - b.length)[0];
+        const content = body.trim().replace(/^:\s*/, "");
+        const firstElement = element.firstElementChild?.matches("strong, b") ? element.firstElementChild : null;
 
     const normalizePath = (path) => path.replace(/\/+$/, "") || "/";
     const currentPath = normalizePath(location.pathname);
@@ -75,6 +75,77 @@ const getMainEditorCode = () => {
     return lines.map((line) => line.innerText || line.textContent || "").join("\n").replace(/\u00a0/g, " ").trimEnd();
 };
 
+const descriptionToMarkdown = (root) => {
+    const renderChildren = (element, omittedChild) => Array.from(element.childNodes)
+        .filter((child) => child !== omittedChild)
+        .map(renderNode)
+        .join("");
+    const renderLabeledBlock = (label, body) => {
+        const content = body.trim();
+        if (/^ejemplo$/i.test(label)) {
+            const quoted = content ? `\n> ${content.replace(/\n/g, "\n> ")}` : "";
+            return `\n\n> **Ejemplo**${quoted}\n\n`;
+        }
+        return `\n\n## ${label.trim().replace(/:$/, "")}\n\n${content}\n\n`;
+    };
+    const labelPattern = /^(objetivo|ejemplo|descripci[oó]n|entrada|salida|formato de entrada|formato de salida|restricciones|consideraciones|observaciones)\s*:?\s*$/i;
+
+    const renderParagraph = (element) => {
+        const firstElement = Array.from(element.children).find((child) => child.matches("strong, b"));
+        const strongLabel = firstElement && labelPattern.exec(getText(firstElement));
+        if (strongLabel) {
+            return renderLabeledBlock(strongLabel[1], renderChildren(element, firstElement));
+        }
+
+        const firstText = Array.from(element.childNodes).find((child) => child.nodeType === Node.TEXT_NODE && child.nodeValue.trim());
+        const textLabel = firstText && /^(\s*)(objetivo|ejemplo|descripci[oó]n|entrada|salida|formato de entrada|formato de salida|restricciones|consideraciones|observaciones)\s*:\s*/i.exec(firstText.nodeValue);
+        if (textLabel) {
+            const remainingText = firstText.nodeValue.replace(textLabel[0], "");
+            const body = remainingText + renderChildren(element, firstText);
+            return renderLabeledBlock(textLabel[2], body);
+        }
+
+        return `\n\n${renderChildren(element).trim()}\n\n`;
+    };
+
+    const renderNode = (node) => {
+        if (node.nodeType === Node.TEXT_NODE) return node.nodeValue.replace(/\s+/g, " ");
+        if (node.nodeType !== Node.ELEMENT_NODE) return "";
+
+        const tag = node.tagName.toLowerCase();
+        const content = renderChildren(node);
+        if (/^h[1-6]$/.test(tag)) {
+            const level = Number(tag[1]);
+            return `\n\n${"#".repeat(level)} ${content.trim()}\n\n`;
+        }
+        if (tag === "p") return renderParagraph(node);
+        if (tag === "pre") return `\n\n\`\`\`\n${node.textContent.trim()}\n\`\`\`\n\n`;
+        if (tag === "strong" || tag === "b") return `**${content.trim()}**`;
+        if (tag === "em" || tag === "i") return `*${content.trim()}*`;
+        if (tag === "code") return `\`${content.trim()}\``;
+        if (tag === "br") return "\n";
+        if (tag === "hr") return "\n\n---\n\n";
+        if (tag === "blockquote") return `\n\n> ${content.trim().replace(/\n/g, "\n> ")}\n\n`;
+        if (tag === "ul" || tag === "ol") {
+            const items = Array.from(node.children).filter((child) => child.tagName.toLowerCase() === "li");
+            return `\n\n${items.map((item, index) => {
+                const marker = tag === "ol" ? `${index + 1}.` : "-";
+                return `${marker} ${renderChildren(item).trim()}`;
+            }).join("\n")}\n\n`;
+        }
+        if (tag === "li") return content.trim();
+        if (tag === "img") return node.alt ? `![${node.alt}](${node.src})` : "";
+        if (["div", "section", "article", "main"].includes(tag)) return `\n\n${content}\n\n`;
+        return content;
+    };
+
+    return renderNode(root)
+        .replace(/\u00a0/g, " ")
+        .replace(/[ \t]+\n/g, "\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+};
+
 const getQuestionDescription = () => {
     const selectors = [
         "[data-testid*='description' i]",
@@ -90,7 +161,7 @@ const getQuestionDescription = () => {
         .map((element) => ({ element, text: getText(element) }))
         .filter(({ text }) => text.length > 40)
         .sort((a, b) => b.text.length - a.text.length)[0];
-    return description?.text || "";
+    return description ? descriptionToMarkdown(description.element) : "";
 };
 
 const collectPageData = () => {
