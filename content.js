@@ -26,7 +26,7 @@ const getQuestionTitle = () => {
     const activeItems = Array.from(document.querySelectorAll(
         "[aria-current='page'], [aria-current='step'], aside [aria-selected='true'], aside [aria-pressed='true'], aside [data-state='active'], aside [class~='active'], aside [class~='selected']"
     )).filter(isVisible);
-    const headings = Array.from(document.querySelectorAll("main h1, main h2, h1, h2"))
+    const headings = Array.from(document.querySelectorAll("main h1, main h2, main h3, h1, h2, h3"))
         .filter(isVisible)
         .map(getText)
         .filter(Boolean);
@@ -116,7 +116,11 @@ const descriptionToMarkdown = (root) => {
         const content = renderChildren(node);
         if (/^h[1-6]$/.test(tag)) {
             const level = Number(tag[1]);
-            return `\n\n${"#".repeat(level)} ${content.trim()}\n\n`;
+            const headingText = content.trim();
+            if (tag === "h3" && /^ejemplo(?:\s+\d+)?$/i.test(headingText)) {
+                return `\n\n> **${headingText}**\n\n`;
+            }
+            return `\n\n${"#".repeat(level)} ${headingText}\n\n`;
         }
         if (tag === "p") return renderParagraph(node);
         if (tag === "pre") return `\n\n\`\`\`\n${node.textContent.trim()}\n\`\`\`\n\n`;
