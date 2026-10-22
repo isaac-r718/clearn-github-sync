@@ -36,8 +36,8 @@ const getQuestionTitle = () => {
         return matches.length === 1;
     });
     const activeQuestion = activeLabels
-        const content = body.trim().replace(/^:\s*/, "");
-        const firstElement = element.firstElementChild?.matches("strong, b") ? element.firstElementChild : null;
+        .filter((label) => /(?:pregunta|problema)\s*\d+/i.test(label))
+        .sort((a, b) => a.length - b.length)[0];
 
     const normalizePath = (path) => path.replace(/\/+$/, "") || "/";
     const currentPath = normalizePath(location.pathname);
@@ -81,7 +81,7 @@ const descriptionToMarkdown = (root) => {
         .map(renderNode)
         .join("");
     const renderLabeledBlock = (label, body) => {
-        const content = body.trim();
+        const content = body.trim().replace(/^:\s*/, "");
         if (/^ejemplo$/i.test(label)) {
             const quoted = content ? `\n> ${content.replace(/\n/g, "\n> ")}` : "";
             return `\n\n> **Ejemplo**${quoted}\n\n`;
