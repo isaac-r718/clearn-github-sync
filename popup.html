@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { width: 260px; font-family: sans-serif; padding: 12px; }
+        label { display: block; margin-top: 8px; font-size: 11px; font-weight: bold; }
+        input { width: 100%; padding: 6px; margin-top: 3px; box-sizing: border-box; }
+        button { margin-top: 10px; width: 100%; padding: 8px; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        #save { background: #2ea44f; }
+        #test { background: #0969da; }
+        #sync { background: #8250df; }
+        button:disabled { opacity: 0.6; cursor: wait; }
+        #status { margin-top: 8px; font-size: 11px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h3 style="margin:0 0 10px 0;">Clearn Sync</h3>
+    <label for="token">GitHub Personal Access Token:</label>
+    <input type="password" id="token" placeholder="ghp_xxxxxxxxxxxx">
+
+    <label for="repo">Repositorio (usuario/repo):</label>
+    <input type="text" id="repo" placeholder="tu-usuario/clearn-solutions">
+
+    <button id="save">Guardar Configuración</button>
+    <button id="test">Probar Conexión GitHub</button>
+    <button id="sync">Sincronizar ejercicio actual</button>
+    <div id="status"></div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

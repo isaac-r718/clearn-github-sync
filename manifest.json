@@ -1,0 +1,26 @@
+{
+  "manifest_version": 2,
+  "name": "Clearn to GitHub Sync",
+  "version": "1.4",
+  "description": "Sincroniza ejercicios de Clearn con un repositorio de GitHub.",
+  "permissions": [
+    "storage",
+    "tabs",
+    "https://www.clearn.cl/*",
+    "https://api.github.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://www.clearn.cl/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": true
+  },
+  "browser_action": {
+    "default_popup": "popup.html"
+  }
+}
