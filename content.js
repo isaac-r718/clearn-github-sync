@@ -24,7 +24,7 @@ const getBreadcrumbItems = () => {
 
 const getQuestionTitle = () => {
     const activeItems = Array.from(document.querySelectorAll(
-        "[aria-current='page'], [aria-current='step'], aside [class*='active'], aside [class*='selected']"
+        "[aria-current='page'], [aria-current='step'], aside [aria-selected='true'], aside [data-state='active'], aside [class*='active'], aside [class*='selected']"
     )).filter(isVisible);
     const headings = Array.from(document.querySelectorAll("main h1, main h2, h1, h2"))
         .filter(isVisible)
@@ -32,19 +32,14 @@ const getQuestionTitle = () => {
         .filter(Boolean);
     const heading = headings.find((text) => /^pregunta\s+\d+/i.test(text)) || headings[0] || "";
     const activeLabels = activeItems.map(getText).filter(Boolean);
-    const navigationLabels = Array.from(document.querySelectorAll("aside a, aside button, nav a, nav button"))
-        .filter(isVisible)
-        .map(getText)
-        .filter((text) => /(?:pregunta|problema)\s*\d+/i.test(text));
-    const numberPattern = /(?:pregunta|problema)\s*\d+/ig;
-    const getBestQuestionNumber = (labels) => labels
-        .flatMap((label) => Array.from(label.matchAll(numberPattern), (match) => match[0]))
-        .sort((a, b) => b.match(/\d+/)[0].length - a.match(/\d+/)[0].length)[0];
-    const questionNumber = getBestQuestionNumber(activeLabels)
-        || getBestQuestionNumber([...navigationLabels, heading]);
+    const activeQuestion = activeLabels
+        .filter((label) => /(?:pregunta|problema)\s*\d+/i.test(label))
+        .sort((a, b) => a.length - b.length)[0];
+    const questionNumber = activeQuestion?.match(/(?:pregunta|problema)\s*(\d+)/i)?.[1]
+        || heading.match(/(?:pregunta|problema)\s*(\d+)/i)?.[1]
+        || location.pathname.match(/\/(?:preguntas?|problems?)\/(\d+)(?:\/|$)/i)?.[1];
 
-    if (questionNumber) return questionNumber.replace(/^(pregunta|problema)/i, "Pregunta");
-    return heading || activeLabels[0] || "Pregunta";
+    return questionNumber ? `Pregunta ${questionNumber}` : "";
 };
 
 const getMainEditorCode = () => {
@@ -96,6 +91,9 @@ const collectPageData = () => {
 
 const syncCurrentPage = async () => {
     const payload = collectPageData();
+    if (!/^Pregunta \d+$/.test(payload.questionTitle)) {
+        return { ok: false, error: "No se pudo identificar la pregunta activa. No se subió nada para evitar sobrescribir otra carpeta." };
+    }
     if (!payload.code) {
         return { ok: false, error: "No se encontró código visible en el editor." };
     }
