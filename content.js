@@ -24,18 +24,38 @@ const getBreadcrumbItems = () => {
 
 const getQuestionTitle = () => {
     const activeItems = Array.from(document.querySelectorAll(
-        "[aria-current='page'], [aria-current='step'], aside [aria-selected='true'], aside [data-state='active'], aside [class*='active'], aside [class*='selected']"
+        "[aria-current='page'], [aria-current='step'], aside [aria-selected='true'], aside [aria-pressed='true'], aside [data-state='active'], aside [class~='active'], aside [class~='selected']"
     )).filter(isVisible);
     const headings = Array.from(document.querySelectorAll("main h1, main h2, h1, h2"))
         .filter(isVisible)
         .map(getText)
         .filter(Boolean);
     const heading = headings.find((text) => /^pregunta\s+\d+/i.test(text)) || headings[0] || "";
-    const activeLabels = activeItems.map(getText).filter(Boolean);
+    const activeLabels = activeItems.map(getText).filter((label) => {
+        const matches = label.match(/(?:pregunta|problema)\s*\d+/ig) || [];
+        return matches.length === 1;
+    });
     const activeQuestion = activeLabels
         .filter((label) => /(?:pregunta|problema)\s*\d+/i.test(label))
         .sort((a, b) => a.length - b.length)[0];
+
+    const normalizePath = (path) => path.replace(/\/+$/, "") || "/";
+    const currentPath = normalizePath(location.pathname);
+    const routeLabels = Array.from(document.querySelectorAll("aside a[href], nav a[href]"))
+        .filter(isVisible)
+        .filter((link) => {
+            try {
+                const url = new URL(link.href, location.href);
+                return url.origin === location.origin && normalizePath(url.pathname) === currentPath;
+            } catch (error) {
+                return false;
+            }
+        })
+        .map(getText)
+        .filter((label) => /(?:pregunta|problema)\s*\d+/i.test(label));
+
     const questionNumber = activeQuestion?.match(/(?:pregunta|problema)\s*(\d+)/i)?.[1]
+        || routeLabels.sort((a, b) => a.length - b.length)[0]?.match(/(?:pregunta|problema)\s*(\d+)/i)?.[1]
         || heading.match(/(?:pregunta|problema)\s*(\d+)/i)?.[1]
         || location.pathname.match(/\/(?:preguntas?|problems?)\/(\d+)(?:\/|$)/i)?.[1];
 
